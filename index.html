@@ -249,7 +249,7 @@
                             To Unit
                         </label>
                         <select id="to-unit" onchange="convert()"
-                                class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 appearance-none"></select>
+                            class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 appearance-none"></select>
                     </div>
                 </div>
 
@@ -334,7 +334,7 @@
             <div class="flex justify-between items-center border-b pb-3 mb-4 border-gray-200 dark:border-gray-700 no-print">
                 <h2 class="text-2xl font-bold text-primary dark:text-secondary">Conversion History</h2>
                 <button onclick="hideModal('results-table-modal')" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             
@@ -474,7 +474,7 @@
                     }
                 } catch (error) {
                     console.error("Firebase Auth Error:", error);
-                    statusElement.textContent = `Auth Failed`;
+                    statusElement.textContent = `Auth Failed: ${error.code}`;
                 }
             };
             authenticate();
