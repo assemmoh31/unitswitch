@@ -400,6 +400,19 @@
         
         // setLogLevel('Debug'); // Uncomment this for detailed Firebase console logs
 
+        // MOCK CONFIGURATION: Used when deploying to external sites like GitHub Pages
+        // You MUST replace these placeholder values with YOUR OWN Firebase config if you want the data 
+        // to persist to your actual database project!
+        const MOCK_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyC0M-pL_AcEHoLdEr-Key",
+            authDomain: "mock-project.firebaseapp.com",
+            projectId: "unit-converter-mock",
+            storageBucket: "mock-project.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
+        };
+
+
         // --- Firebase Globals & Initialization ---
         let db;
         let auth;
@@ -407,10 +420,12 @@
         let appId = 'default-app-id'; // Default safeguard
         
         /**
-         * Safely loads and initializes global environment variables for Firebase config.
+         * Safely loads and initializes global environment variables for Firebase config, 
+         * falling back to mock config if running outside Canvas environment.
          */
         const initFirebaseEnv = () => {
-            let firebaseConfig = null;
+            // Start with MOCK configuration for external deployment
+            let firebaseConfig = MOCK_FIREBASE_CONFIG; 
             let initialAuthToken = null;
 
             // 1. Load __app_id
@@ -418,21 +433,21 @@
                 appId = __app_id;
             }
             
-            // 2. Load and parse __firebase_config
-            if (typeof __firebase_config !== 'undefined') {
+            // 2. Load and parse __firebase_config (Overwrite mock if present)
+            // This condition is FALSE on GitHub Pages, so it uses the MOCK_FIREBASE_CONFIG
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 try {
                     firebaseConfig = JSON.parse(__firebase_config);
                 } catch(e) {
                     console.error("FIREBASE ERROR: Failed to parse __firebase_config", e);
-                    return null; // Stop if config is invalid
+                    // Continue with mock config if parsing fails
                 }
             } else {
-                console.error("FIREBASE ERROR: __firebase_config is undefined.");
-                return null;
+                console.warn("FIREBASE WARNING: __firebase_config is undefined. Using MOCK config and Anonymous Sign-In.");
             }
             
             // 3. Load __initial_auth_token
-            if (typeof __initial_auth_token !== 'undefined') {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 initialAuthToken = __initial_auth_token;
             }
 
@@ -450,10 +465,12 @@
             const authenticate = async () => {
                 const statusElement = document.getElementById('auth-status');
                 try {
+                    // Tries Custom Token first (only works in Canvas)
                     if (config.initialAuthToken) {
                         await signInWithCustomToken(auth, config.initialAuthToken);
                     } else {
-                        await signInAnonymously(auth);
+                        // Falls back to Anonymous Sign-In for external deployments (GitHub Pages)
+                        await signInAnonymously(auth); 
                     }
                 } catch (error) {
                     console.error("Firebase Auth Error:", error);
@@ -476,7 +493,8 @@
                     statusElement.classList.add('text-green-500');
                     historyButton.disabled = false;
                     saveButton.disabled = false;
-                    userIdDisplay.textContent = `User ID: ${currentUserId}`;
+                    // Note: Anonymous User IDs are usually a unique, long string (not the short numeric one you see in Canvas)
+                    userIdDisplay.textContent = `User ID: ${currentUserId}`; 
                     
                     setupResultsListener(); // Start listening for data
                 } else {
@@ -503,7 +521,7 @@
             volume: { liter: { name: "Liter (L)", factor: 1 }, milliliter: { name: "Milliliter (mL)", factor: 0.001 }, cubicCentimeter: { name: "Cubic Cm", factor: 0.001 }, usGallon: { name: "US Gallon", factor: 3.78541 }, fluidOunce: { name: "Fluid Oz (US)", factor: 0.0295735 } },
             area: { squareMeter: { name: "Sq Meter", factor: 1 }, squareKilometer: { name: "Sq Kilometer", factor: 1000000 }, squareFoot: { name: "Sq Foot", factor: 0.092903 }, acre: { name: "Acre", factor: 4046.86 }, hectare: { name: "Hectare", factor: 10000 } },
             temperature: {
-                celsius: { name: "Celsius (°C)", toBase: (c) => c, fromBase: (c) => c }, 
+                celsius: { name: "Celsius (°C)", toBase: (c) => c }, 
                 fahrenheit: { name: "Fahrenheit (°F)", toBase: (f) => (f - 32) * 5 / 9, fromBase: (c) => (c * 9 / 5) + 32 },
                 kelvin: { name: "Kelvin (K)", toBase: (k) => k - 273.15, fromBase: (c) => c + 273.15 }
             },
@@ -571,7 +589,8 @@
                 const fromUnit = units[fromKey];
                 const toUnit = units[toKey];
                 const valueInBase = fromUnit.toBase(value); // Convert to Celsius base
-                result = toUnit.fromBase(valueInBase); // Convert from Celsius base to target
+                // Check if 'fromBase' exists (Kelvin and Fahrenheit have it, Celsius doesn't need it but we guard against error)
+                result = toUnit.fromBase ? toUnit.fromBase(valueInBase) : valueInBase; 
             } else {
                 // All other categories use multiplicative factors
                 const fromFactor = units[fromKey].factor;
