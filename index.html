@@ -1,950 +1,737 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnitCV Pro - Universal Converter</title>
     
-    <title>UnitCV Pro: Universal Unit Converter with AdSense Optimization</title>
-    <meta name="description" content="Optimized, zero-error unit converter featuring 10 essential categories, real-time Firebase history, and strategic AdSense placement for maximum monetization.">
-    <meta name="keywords" content="unit converter, firebase, tailwind css, optimized, adsense, responsive design, data storage, temperature, weight, length">
-
-    <!-- AdSense Global Script (MANDATORY: Use your specific client ID) -->
-    <meta name="google-adsense-account" content="ca-pub-2239313494905583">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2239313494905583"
-        crossorigin="anonymous"></script>
-        
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration for Dark Mode -->
     <script>
-        // --- Theme Initializer Script (Runs before page load) ---
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        
         tailwind.config = {
-            darkMode: 'class', 
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#4f46e5', // Indigo
-                        'secondary': '#8b5cf6', // Violet
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
                 }
             }
         }
     </script>
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        /* Base styles */
-        body {
-            background-color: #f3f4f6; 
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s;
-        }
-        .dark body {
-            background-color: #111827;
-        }
-        .converter-field:focus {
-            border-color: #a78bfa; 
-            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.5);
-        }
-        .modal {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-        .modal.visible {
-            opacity: 1;
-        }
-        .modal-content {
-            transform: translateY(10px);
-            transition: transform 0.3s ease-in-out;
-        }
-        .modal.visible .modal-content {
-            transform: translateY(0);
-        }
-        .adsbygoogle {
-            display: block;
-            width: 100%;
-            min-height: 50px; /* Prevent CLS */
-        }
+        body { font-family: 'Inter', sans-serif; }
         
-        /* Desktop Grid Layout for Ads */
-        @media (min-width: 1024px) { 
-            body:not(.print-mode) { 
-                display: grid;
-                /* Ad 160px | Main App (Max 500px) | Ad 160px */
-                grid-template-columns: 160px minmax(300px, 500px) 160px; 
-                justify-content: center;
-                align-items: start; 
-                padding: 1.5rem;
-                gap: 1.5rem;
-            }
-            #app, footer {
-                grid-column: 2 / 3; 
-                width: 100%;
-            }
-            .side-banner {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-                height: 100vh;
-                padding-top: 2rem; 
-            }
-        }
-        @media (max-width: 1023px) { 
-            body:not(.print-mode) {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 1rem;
-            }
-            .side-banner {
-                display: none; /* Hide skyscrapers on mobile */
-            }
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
         
-        /* CORRECTED PRINT STYLES */
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+
+        /* --- ROBUST PRINT STYLES --- */
         @media print {
-            /* 1. Reset Body */
-            body { 
-                background: white !important; 
-                margin: 0; 
-                padding: 0; 
-                overflow: hidden !important; 
-            }
-            
-            /* 2. Hide everything that is NOT the print target */
-            body > *:not(.is-print-target) { 
-                display: none !important; 
-            }
-            
-            /* 3. Make the print target (the modal wrapper) static and visible */
-            .is-print-target { 
-                display: block !important; 
-                position: static !important; /* Crucial: Overrides 'fixed' */
-                background: white !important; /* Removes dark overlay */
-                opacity: 1 !important;
-                width: 100% !important; 
-                max-width: none !important; 
-                height: auto !important;
-                box-shadow: none !important;
-            }
-            
-            /* 4. Make the inner content fit the page */
-            .is-print-target .modal-content {
-                transform: none !important;
-                box-shadow: none !important;
-                max-height: none !important;
-                overflow: visible !important;
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                border: none !important;
+            /* 1. Hide everything by default using visibility */
+            /* This is safer than display:none for complex layouts */
+            body * {
+                visibility: hidden;
             }
 
-            .no-print { display: none !important; }
+            /* 2. Make the history section visible */
+            #history-section, #history-section * {
+                visibility: visible;
+            }
+
+            /* 3. Position the history section at the very top of the printed page */
+            #history-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                height: auto !important;
+                max-height: none !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            /* 4. Ensure the container expands fully */
+            #history-container {
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            /* 5. Hide the action buttons inside the visible section */
+            #history-actions, .fa-trash-can, #clear-history {
+                display: none !important;
+            }
+
+            /* 6. Formatting fixes for print */
+            body { 
+                background: white; 
+                height: auto;
+                overflow: visible;
+            }
+            
+            /* Add a print-only title */
+            #history-section::before {
+                content: "Conversion History Report";
+                display: block;
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                text-align: center;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+            }
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
 
-    <!-- AD SLOT 1: LEFT SKYSCRAPER (160x600) - Only visible on desktop -->
-    <div class="side-banner">
-        <ins class="adsbygoogle"
-              style="display:inline-block; width:160px; height:600px;" 
-              data-ad-client="ca-pub-2239313494905583"
-              data-ad-slot="1111111111"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        <p class="text-xs text-gray-400 mt-2 hidden lg:block">Ad: Left Skyscraper (1111)</p>
-    </div>
-
-    <!-- MAIN APPLICATION CONTAINER -->
-    <div id="app" class="w-full max-w-xl bg-white dark:bg-gray-800 shadow-xl dark:shadow-none rounded-xl p-6 md:p-8 border border-gray-100 dark:border-gray-700">
-        
-        <!-- Header, Theme Toggle, and User ID Display -->
-        <div class="flex justify-between items-start mb-2">
-            <div>
-                <h1 class="text-3xl font-bold text-primary dark:text-secondary text-left">
-                    UnitCV Pro
-                </h1>
-                <p id="user-id-display" class="text-xs text-gray-400 dark:text-gray-600 mt-1 truncate"></p>
-            </div>
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <span id="auth-status" class="text-xs text-red-500 dark:text-red-400">Connecting...</span>
-                <button id="theme-toggle" onclick="toggleTheme()" class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition duration-150">
-                    <svg id="sun-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="moon-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <div class="bg-brand-600 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">UnitCV <span class="text-brand-500">Pro</span></h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div id="auth-status" class="hidden md:flex items-center text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
+                    <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse" id="auth-dot"></span>
+                    <span id="auth-text">Connecting...</span>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
                 </button>
             </div>
         </div>
+    </header>
 
-        <p class="text-left text-gray-500 dark:text-gray-400 mb-6 mt-2">
-            Convert across 10 categories. History powered by Firestore.
-        </p>
-
-        <!-- Category Selector -->
-        <div class="mb-6">
-            <label for="category-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Conversion Category
-            </label>
-            <select id="category-select" class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 appearance-none" onchange="populateUnits()">
-                <option value="length">Length</option>
-                <option value="weight">Weight</option>
-                <option value="temperature">Temperature</option>
-                <option value="volume">Volume</option>
-                <option value="area">Area</option>
-                <option value="time">Time</option>
-                <option value="speed">Speed</option>
-                <option value="data">Data Storage</option>
-                <option value="pressure">Pressure</option>
-                <option value="energy">Energy</option>
-            </select>
+    <!-- AdSense Slot 1 (Header) -->
+    <div class="ad-slot max-w-4xl mx-auto px-4 mt-4">
+        <div class="w-full h-24 bg-gray-200 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center text-gray-400 text-sm">
+            <span class="font-semibold">Google AdSense</span>
+            <span>Header Banner (Responsive)</span>
         </div>
-        
-        <!-- Conversion Fields -->
-        <div class="space-y-6">
-            <!-- Input Row -->
-            <div class="flex flex-col md:flex-row gap-4 items-end md:items-center">
-                <div class="w-full">
-                    <label for="input-value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Input Value
-                    </label>
-                    <input type="number" id="input-value" value="1" step="any"
-                            class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg text-lg font-semibold text-gray-800 dark:text-gray-100 dark:bg-gray-700"
-                            placeholder="Enter value" oninput="convert()">
-                </div>
-                <div class="w-full md:w-1/2">
-                    <label for="from-unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        From Unit
-                    </label>
-                    <select id="from-unit" onchange="convert()"
-                            class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 appearance-none"></select>
-                </div>
-            </div>
+    </div>
 
-            <!-- Output Row & Controls -->
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col md:flex-row gap-4 items-end md:items-center">
-                    <div class="w-full">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Converted Result
-                        </label>
-                        <div class="relative flex">
-                            <input type="text" id="output-value" readonly
-                                    class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-l-lg text-lg font-bold bg-purple-50 dark:bg-purple-900 text-secondary dark:text-purple-300 cursor-not-allowed"
-                                    placeholder="Result">
-                            <button id="copy-button" onclick="copyResult()" title="Copy Result"
-                                    class="p-3 bg-primary dark:bg-secondary text-white rounded-r-lg hover:bg-indigo-600 dark:hover:bg-violet-600 transition duration-150 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-secondary focus:ring-offset-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2M4 7h16" /></svg>
-                            </button>
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl mx-auto px-4 py-6 w-full grid gap-6 md:grid-cols-12">
+        
+        <!-- Converter Section -->
+        <div id="converter-section" class="md:col-span-12 lg:col-span-7 space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <h2 class="font-semibold text-lg">Converter</h2>
+                    <select id="category-select" class="bg-slate-50 dark:bg-slate-700 border-none text-sm rounded-lg focus:ring-2 focus:ring-brand-500 block p-2.5 font-medium cursor-pointer">
+                        <!-- Categories populated by JS -->
+                    </select>
+                </div>
+
+                <div class="p-6 space-y-8">
+                    <!-- From Input -->
+                    <div class="relative group">
+                        <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">From</label>
+                        <div class="flex shadow-sm rounded-xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-600 group-focus-within:ring-2 group-focus-within:ring-brand-500 transition-all">
+                            <input type="number" id="input-value" placeholder="0" class="flex-1 bg-transparent border-none p-4 text-2xl font-bold focus:ring-0 text-slate-800 dark:text-slate-100 placeholder-slate-300">
+                            <div class="bg-slate-50 dark:bg-slate-700 border-l border-slate-200 dark:border-slate-600 flex items-center px-2">
+                                <select id="from-unit" class="bg-transparent border-none text-sm font-medium focus:ring-0 text-slate-600 dark:text-slate-300 w-28 cursor-pointer text-right">
+                                    <!-- Units populated by JS -->
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="w-full md:w-1/2">
-                        <label for="to-unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            To Unit
-                        </label>
-                        <select id="to-unit" onchange="convert()"
-                            class="converter-field w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 appearance-none"></select>
+
+                    <!-- Swap Button (Visual) -->
+                    <div class="flex justify-center -my-4 relative z-10">
+                        <button id="swap-btn" class="bg-brand-600 hover:bg-brand-700 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform hover:rotate-180 active:scale-95">
+                            <i class="fa-solid fa-arrow-right-arrow-left text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- To Input (Read Only for Result) -->
+                    <div class="relative group">
+                        <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">To</label>
+                        <div class="flex shadow-sm rounded-xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-600 bg-slate-50 dark:bg-slate-900/50">
+                            <input type="text" id="output-value" readonly placeholder="0" class="flex-1 bg-transparent border-none p-4 text-2xl font-bold focus:ring-0 text-brand-600 dark:text-brand-400 cursor-default">
+                            <div class="border-l border-slate-200 dark:border-slate-600 flex items-center px-2">
+                                <select id="to-unit" class="bg-transparent border-none text-sm font-medium focus:ring-0 text-slate-600 dark:text-slate-300 w-28 cursor-pointer text-right">
+                                    <!-- Units populated by JS -->
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Action Buttons: Save & View History -->
-                <div class="flex justify-end space-x-3">
-                    <button onclick="showModal('results-table-modal')"
-                            id="view-history-button"
-                            class="flex items-center space-x-2 px-4 py-2 bg-secondary dark:bg-primary text-white text-sm font-medium rounded-lg shadow-md hover:bg-violet-600 dark:hover:bg-indigo-600 transition duration-150 disabled:opacity-50"
-                            disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                        <span>History (<span id="results-count">0</span>)</span>
-                    </button>
+            <!-- AdSense Slot 2 (Middle) -->
+            <div class="ad-slot w-full h-20 bg-gray-200 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center text-gray-400 text-xs">
+                <span class="font-semibold">AdSense</span>
+                <span>Contextual Ad</span>
+            </div>
+        </div>
 
-                    <button id="save-result-button" onclick="saveConversion()" title="Save Conversion to History"
-                            class="flex items-center space-x-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-150 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                            disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span>Save</span>
-                    </button>
+        <!-- History Section -->
+        <div id="history-section" class="md:col-span-12 lg:col-span-5 h-full relative">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 h-full flex flex-col max-h-[600px] lg:max-h-none">
+                <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                    <h3 class="font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> History
+                    </h3>
+                    <div id="history-actions" class="flex items-center gap-2">
+                        <button id="print-history" type="button" class="text-xs text-slate-500 hover:text-brand-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-brand-400 dark:hover:bg-slate-700 font-medium px-3 py-1.5 rounded-md transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-print"></i>
+                        </button>
+                        <button id="clear-history" type="button" class="text-xs text-red-500 hover:text-white hover:bg-red-500 border border-red-200 dark:border-red-900/50 font-medium px-3 py-1.5 rounded-md transition-all disabled:opacity-50">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="history-container" class="flex-1 overflow-y-auto p-4 space-y-3 relative">
+                    <!-- Loading State -->
+                    <div id="history-loading" class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-800/80 z-10">
+                        <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-2xl"></i>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="history-empty" class="hidden h-full flex flex-col items-center justify-center text-slate-400 py-10">
+                        <i class="fa-regular fa-clipboard text-4xl mb-3 opacity-50"></i>
+                        <p class="text-sm">No conversions yet</p>
+                    </div>
+
+                    <!-- List Items (Injected by JS) -->
+                    <div id="history-list" class="space-y-2"></div>
                 </div>
             </div>
         </div>
-        
-        <!-- AD SLOT 2: Responsive Banner (Below Conversion Block) -->
-        <div class="mt-8 mb-4">
-            <ins class="adsbygoogle"
-                  style="display:block; text-align:center;"
-                  data-ad-client="ca-pub-2239313494905583"
-                  data-ad-slot="2222222222"
-                  data-ad-format="auto"
-                  data-full-width-responsive="true"></ins>
-            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-            <p class="text-xs text-gray-400 mt-2 text-center">Ad: Responsive Banner (2222)</p>
+    </main>
+
+    <footer class="mt-auto py-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-xs text-slate-400">© 2025 UnitCV Pro. Securely powered by Firebase.</p>
+            
+            <!-- AdSense Slot 3 (Footer) -->
+            <div class="ad-slot w-full md:w-1/3 h-16 bg-gray-200 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded flex items-center justify-center text-gray-400 text-[10px]">
+                Ad Footer
+            </div>
         </div>
-        <!-- END AD SLOT 2 -->
-    </div>
-    
-    <!-- Footer and Privacy Policy Link -->
-    <footer class="w-full max-w-xl text-center mt-6 text-sm text-gray-500 dark:text-gray-400 pb-4">
-        &copy; 2024 UnitCV Pro.
-        <button onclick="showModal('privacy-modal')" class="text-primary dark:text-secondary hover:text-secondary dark:hover:text-primary hover:underline ml-2">
-            Privacy Policy
-        </button>
     </footer>
 
-    <!-- AD SLOT 3: RIGHT SKYSCRAPER (160x600) - Only visible on desktop -->
-    <div class="side-banner">
-        <ins class="adsbygoogle"
-              style="display:inline-block; width:160px; height:600px;" 
-              data-ad-client="ca-pub-2239313494905583"
-              data-ad-slot="3333333333"></ins> 
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        <p class="text-xs text-gray-400 mt-2 hidden lg:block">Ad: Right Skyscraper (3333)</p>
-    </div>
-
-    <!-- Privacy Policy Modal -->
-    <div id="privacy-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50" onclick="hideModal('privacy-modal')">
-        <div class="modal-content bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl overflow-y-auto max-h-[90vh] p-6" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center border-b pb-3 mb-4 border-gray-200 dark:border-gray-700">
-                <h2 class="text-2xl font-bold text-primary dark:text-secondary">Privacy Policy</h2>
-                <button onclick="hideModal('privacy-modal')" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            <div id="policy-content" class="text-gray-700 dark:text-gray-300 text-sm space-y-4">
-                <h2 class="text-xl font-bold mb-3">Privacy Policy for UnitCV Pro</h2>
-                <p class="text-xs text-gray-500 mb-6 font-mono">Last Updated: November 2024</p>
-                <p class="mb-4">This application uses Google Firebase for history storage and Google AdSense for advertising. We collect anonymous conversion data linked to your user ID for the history feature only. Your data is stored securely in a private collection.</p>
-                <p class="mb-4"><strong>AdSense & Cookies:</strong> AdSense may use cookies to personalize ads. By using this application, you consent to the processing of data by these third parties as described in their respective policies.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Saved Results Table Modal -->
-    <div id="results-table-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50" onclick="hideModal('results-table-modal')">
-        <div class="modal-content bg-white dark:bg-gray-800 w-full max-w-4xl rounded-xl shadow-2xl overflow-y-auto max-h-[90vh] p-6" onclick="event.stopPropagation()">
-            
-            <div class="flex justify-between items-center border-b pb-3 mb-4 border-gray-200 dark:border-gray-700 no-print">
-                <h2 class="text-2xl font-bold text-primary dark:text-secondary">Conversion History</h2>
-                <button onclick="hideModal('results-table-modal')" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            
-            <!-- AD SLOT 4: Responsive Banner (Inside Modal - Top) -->
-            <div class="my-4 no-print">
-                <ins class="adsbygoogle"
-                      style="display:block"
-                      data-ad-client="ca-pub-2239313494905583"
-                      data-ad-slot="4444444444" 
-                      data-ad-format="auto"
-                      data-full-width-responsive="true"></ins>
-                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-                <p class="text-xs text-gray-400 mt-1 text-center">Ad: Modal Banner (4444)</p>
-            </div>
-            <!-- END AD SLOT 4 -->
-
-            <!-- Print Header -->
-            <div id="print-header" class="hidden text-center mb-6">
-                <h1 class="text-3xl font-bold mb-2">UnitCV Pro Conversion Results</h1>
-                <p class="text-sm">User ID: <span id="print-user-id"></span> | Date: <span id="print-date"></span></p>
-            </div>
-
-            <div id="results-table-container" class="mt-4">
-                <p id="no-results-message" class="text-center text-gray-500 dark:text-gray-400 py-10">No saved results yet. Save a conversion to begin!</p>
-            </div>
-
-            <div class="mt-6 flex justify-between items-center no-print">
-                 <!-- AD SLOT 5: Responsive Banner (Inside Modal - Bottom) -->
-                <div class="flex-1 mr-4">
-                    <ins class="adsbygoogle"
-                          style="display:block"
-                          data-ad-client="ca-pub-2239313494905583"
-                          data-ad-slot="5555555555" 
-                          data-ad-format="auto"
-                          data-full-width-responsive="true"></ins>
-                    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-                    <p class="text-xs text-gray-400 mt-1 text-center">Ad: Modal Bottom (5555)</p>
-                </div>
-                <!-- END AD SLOT 5 -->
-
-                <button onclick="printResults()"
-                        class="flex items-center space-x-2 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition duration-150">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m0 0v-4m0 4h10v4a2 2 0 01-2 2H9a2 2 0 01-2-2v-4zM7 13h10" /></svg>
-                    <span>Print/PDF</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Copy Notification Toast -->
-    <div id="copy-notification" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 p-3 px-5 bg-green-500 text-white rounded-full shadow-lg opacity-0 transition-opacity duration-300 hidden z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-        Copied to clipboard!
-    </div>
-
-
+    <!-- Firebase SDKs -->
     <script type="module">
-        // Import all necessary Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, onSnapshot, collection, query, serverTimestamp, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // setLogLevel('Debug'); 
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            deleteDoc, 
+            doc, 
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Mock Configuration for Robustness (Used if environment config fails) ---
-        const MOCK_FIREBASE_CONFIG = {
-            apiKey: "MOCK_KEY_TO_PREVENT_CRASH", // A placeholder value to avoid the 'auth/api-key-not-valid' crash
-            authDomain: "mock-project.firebaseapp.com",
-            projectId: "unit-converter-mock",
-            storageBucket: "mock-project.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef1234567890"
-        };
+        // --- Configuration ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'unitcv-pro-dev';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project"
+        }; // Placeholder fallback
 
+        // --- Firebase Init ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // ====================================================================================
-        // >>> TU CONFIGURACIÓN REAL DE FIREBASE HA SIDO INTEGRADA AQUÍ <<<
-        // 
-        // Esta configuración garantiza que el historial de conversiones se guarde
-        // en tu proyecto de Firebase: unitconverpro.
-        // ====================================================================================
-        const REAL_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyB81-YUohQq6rBiRQnzwNRGrLGrJGKs0M0",
-            authDomain: "unitconverpro.firebaseapp.com",
-            projectId: "unitconverpro",
-            storageBucket: "unitconverpro.firebasestorage.app",
-            messagingSenderId: "1063076389366",
-            appId: "1:1063076389366:web:c1286f510f898f37cb27d7"
-            // MeasurementId is excluded as it's not needed for core functionality
-        };
-        // ====================================================================================
+        // --- State Management ---
+        let currentUser = null;
+        let unsubscribeHistory = null;
+        let lastConversion = null; // Debounce mechanism
+        let currentHistoryIds = []; // Stores IDs of currently visible items for batch deletion
 
-
-        // --- Firebase Globals & Initialization ---
-        let db;
-        let auth;
-        let currentUserId = null; 
-        let appId = 'default-app-id'; // Default safeguard
-        let isFirebaseReady = false; // New flag for better control
-        
-        /**
-         * Safely loads and initializes global environment variables for Firebase config, 
-         * falling back to mock/real config if running outside Canvas environment or if config is invalid.
-         */
-        const initFirebaseEnv = () => {
-            let firebaseConfig = MOCK_FIREBASE_CONFIG; 
-            let initialAuthToken = null;
-            let hasValidConfig = false;
-
-            // 1. Load __app_id
-            if (typeof __app_id !== 'undefined') {
-                appId = __app_id;
-            }
-            
-            // 2. Load and parse __firebase_config (Overwrite mock if present, used inside Canvas)
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                try {
-                    const parsedConfig = JSON.parse(__firebase_config);
-                    // Check if the parsed config actually has an apiKey or projectId
-                    if (parsedConfig.apiKey && parsedConfig.projectId) {
-                        firebaseConfig = parsedConfig;
-                        hasValidConfig = true;
-                    } else {
-                         console.warn("FIREBASE WARNING: __firebase_config is present but appears invalid (missing apiKey/projectId). Using REAL config as fallback.");
-                         firebaseConfig = REAL_FIREBASE_CONFIG; // Fallback to REAL config for external use
-                         // Check if REAL_FIREBASE_CONFIG seems valid (not the placeholder)
-                         if (firebaseConfig.apiKey) {
-                             hasValidConfig = true;
-                         }
-                    }
-                } catch(e) {
-                    console.error("FIREBASE ERROR: Failed to parse __firebase_config. Using REAL config.", e);
-                    firebaseConfig = REAL_FIREBASE_CONFIG;
-                    if (firebaseConfig.apiKey) {
-                         hasValidConfig = true;
-                    }
+        // --- Unit Data Definitions ---
+        const UNIT_DATA = {
+            Length: {
+                base: 'm',
+                units: {
+                    'm': { name: 'Meters', factor: 1 },
+                    'km': { name: 'Kilometers', factor: 1000 },
+                    'cm': { name: 'Centimeters', factor: 0.01 },
+                    'mm': { name: 'Millimeters', factor: 0.001 },
+                    'mi': { name: 'Miles', factor: 1609.34 },
+                    'yd': { name: 'Yards', factor: 0.9144 },
+                    'ft': { name: 'Feet', factor: 0.3048 },
+                    'in': { name: 'Inches', factor: 0.0254 }
                 }
-            } else {
-                // 3. If __firebase_config is undefined (running in GitHub/external browser), use REAL_FIREBASE_CONFIG
-                firebaseConfig = REAL_FIREBASE_CONFIG;
-                // Check if REAL_FIREBASE_CONFIG seems valid (not the placeholder)
-                if (firebaseConfig.apiKey) {
-                    hasValidConfig = true;
-                } else {
-                     console.warn("FIREBASE WARNING: __firebase_config is undefined, and REAL_FIREBASE_CONFIG is missing API key. Using MOCK config.");
-                     firebaseConfig = MOCK_FIREBASE_CONFIG; // Final fallback to MOCK
-                }
-            }
-            
-            // 4. Load __initial_auth_token
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                initialAuthToken = __initial_auth_token;
-            }
-
-            return { firebaseConfig, initialAuthToken, hasValidConfig };
-        };
-
-        const config = initFirebaseEnv();
-
-        if (config.hasValidConfig || !config.hasValidConfig) { // Always run initialization, even with mock data
-            const app = initializeApp(config.firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            isFirebaseReady = true;
-
-            // Initial Authentication
-            const authenticate = async () => {
-                const statusElement = document.getElementById('auth-status');
-                if (!config.hasValidConfig) {
-                    statusElement.textContent = 'MOCK MODE: History Disabled';
-                    statusElement.classList.remove('text-green-500');
-                    statusElement.classList.add('text-yellow-500');
-                    return; // Prevent attempting sign-in which would crash with the mock key
-                }
-
-                try {
-                    // Tries Custom Token first (only works in Canvas)
-                    if (config.initialAuthToken) {
-                        await signInWithCustomToken(auth, config.initialAuthToken);
-                    } else {
-                        // Falls back to Anonymous Sign-In for external deployments
-                        await signInAnonymously(auth); 
-                    }
-                } catch (error) {
-                    console.error("Firebase Auth Error:", error);
-                    statusElement.textContent = `Auth Failed: ${error.code}`;
-                    statusElement.classList.remove('text-green-500');
-                    statusElement.classList.add('text-red-500');
-                }
-            };
-            
-            // Only try to authenticate if we think we have a valid key
-            if (config.hasValidConfig) {
-                authenticate();
-            } else {
-                 // If not valid, manually set the disabled state
-                 const historyButton = document.getElementById('view-history-button');
-                 const saveButton = document.getElementById('save-result-button');
-                 historyButton.disabled = true;
-                 saveButton.disabled = true;
-            }
-
-            // Auth State Listener and Initialization Trigger (Only runs if a valid key was used)
-            onAuthStateChanged(auth, (user) => {
-                const statusElement = document.getElementById('auth-status');
-                const historyButton = document.getElementById('view-history-button');
-                const saveButton = document.getElementById('save-result-button');
-                const userIdDisplay = document.getElementById('user-id-display');
-
-                if (user) {
-                    currentUserId = user.uid;
-                    statusElement.textContent = 'Ready';
-                    statusElement.classList.remove('text-red-500', 'text-yellow-500');
-                    statusElement.classList.add('text-green-500');
-                    historyButton.disabled = false;
-                    saveButton.disabled = false;
-                    userIdDisplay.textContent = `User ID: ${currentUserId}`; 
-                    
-                    setupResultsListener(); // Start listening for data
-                } else if (config.hasValidConfig) { // Only log error if a valid config was expected
-                    currentUserId = null;
-                    statusElement.textContent = 'Auth Required (Sign-in error)';
-                    statusElement.classList.add('text-red-500');
-                    statusElement.classList.remove('text-green-500');
-                    historyButton.disabled = true;
-                    saveButton.disabled = true;
-                    userIdDisplay.textContent = `User ID: N/A`;
-                    // Clear results if user is not signed in
-                    document.getElementById('results-table-container').innerHTML = `<p id="no-results-message" class="text-center text-gray-500 dark:text-gray-400 py-10">Sign in to view history.</p>`;
-                    document.getElementById('results-count').textContent = '0';
-                }
-            });
-        }
-
-
-        // --- Unit Definitions ---
-        const KILOBYTE = 1024;
-        const UNITS = {
-            length: { meter: { name: "Meter", factor: 1 }, kilometer: { name: "Kilometer", factor: 1000 }, centimeter: { name: "Centimeter", factor: 0.01 }, mile: { name: "Mile", factor: 1609.34 }, foot: { name: "Foot (ft)", factor: 0.3048 }, inch: { name: "Inch (in)", factor: 0.0254 } },
-            weight: { kilogram: { name: "Kilogram (kg)", factor: 1 }, gram: { name: "Gram (g)", factor: 0.001 }, milligram: { name: "Milligram (mg)", factor: 1e-6 }, pound: { name: "Pound (lb)", factor: 0.453592 }, ounce: { name: "Ounce (oz)", factor: 0.0283495 } },
-            volume: { liter: { name: "Liter (L)", factor: 1 }, milliliter: { name: "Milliliter (mL)", factor: 0.001 }, cubicCentimeter: { name: "Cubic Cm", factor: 0.001 }, usGallon: { name: "US Gallon", factor: 3.78541 }, fluidOunce: { name: "Fluid Oz (US)", factor: 0.0295735 } },
-            area: { squareMeter: { name: "Sq Meter", factor: 1 }, squareKilometer: { name: "Sq Kilometer", factor: 1000000 }, squareFoot: { name: "Sq Foot", factor: 0.092903 }, acre: { name: "Acre", factor: 4046.86 }, hectare: { name: "Hectare", factor: 10000 } },
-            temperature: {
-                celsius: { name: "Celsius (°C)", toBase: (c) => c }, 
-                fahrenheit: { name: "Fahrenheit (°F)", toBase: (f) => (f - 32) * 5 / 9, fromBase: (c) => (c * 9 / 5) + 32 },
-                kelvin: { name: "Kelvin (K)", toBase: (k) => k - 273.15, fromBase: (c) => c + 273.15 }
             },
-            time: { second: { name: "Second (s)", factor: 1 }, millisecond: { name: "Millisecond (ms)", factor: 0.001 }, minute: { name: "Minute (min)", factor: 60 }, hour: { name: "Hour (hr)", factor: 3600 }, day: { name: "Day (d)", factor: 86400 } },
-            speed: { meterPerSecond: { name: "Meters/Second", factor: 1 }, kilometerPerHour: { name: "Km/Hour", factor: 1 / 3.6 }, milesPerHour: { name: "Miles/Hour", factor: 0.44704 }, knot: { name: "Knot", factor: 0.514444 } },
-            data: { byte: { name: "Byte (B)", factor: 1 }, kilobyte: { name: "Kilobyte (KB)", factor: KILOBYTE }, megabyte: { name: "Megabyte (MB)", factor: KILOBYTE * KILOBYTE }, gigabyte: { name: "Gigabyte (GB)", factor: KILOBYTE * KILOBYTE * KILOBYTE }, bit: { name: "Bit (b)", factor: 1/8 } },
-            pressure: { pascal: { name: "Pascal (Pa)", factor: 1 }, kilopascal: { name: "Kilopascal (kPa)", factor: 1000 }, bar: { name: "Bar", factor: 100000 }, atmosphere: { name: "Atmosphere (atm)", factor: 101325 }, psi: { name: "Pound/Sq Inch (psi)", factor: 6894.76 } },
-            energy: { joule: { name: "Joule (J)", factor: 1 }, kilojoule: { name: "Kilojoule (kJ)", factor: 1000 }, calorie: { name: "Calorie (cal)", factor: 4.184 }, kilowattHour: { name: "kW-hour (kWh)", factor: 3600000 }, britishThermalUnit: { name: "BTU", factor: 1055.06 } }
+            Weight: {
+                base: 'kg',
+                units: {
+                    'kg': { name: 'Kilograms', factor: 1 },
+                    'g': { name: 'Grams', factor: 0.001 },
+                    'mg': { name: 'Milligrams', factor: 0.000001 },
+                    'lb': { name: 'Pounds', factor: 0.453592 },
+                    'oz': { name: 'Ounces', factor: 0.0283495 },
+                    'st': { name: 'Stone', factor: 6.35029 },
+                    't': { name: 'Metric Ton', factor: 1000 }
+                }
+            },
+            Temperature: {
+                type: 'special',
+                units: {
+                    'C': { name: 'Celsius', toBase: v => v, fromBase: v => v },
+                    'F': { name: 'Fahrenheit', toBase: v => (v - 32) * 5/9, fromBase: v => (v * 9/5) + 32 },
+                    'K': { name: 'Kelvin', toBase: v => v - 273.15, fromBase: v => v + 273.15 }
+                }
+            },
+            Volume: {
+                base: 'l',
+                units: {
+                    'l': { name: 'Liters', factor: 1 },
+                    'ml': { name: 'Milliliters', factor: 0.001 },
+                    'gal': { name: 'Gallons (US)', factor: 3.78541 },
+                    'qt': { name: 'Quarts (US)', factor: 0.946353 },
+                    'pt': { name: 'Pints (US)', factor: 0.473176 },
+                    'cup': { name: 'Cups', factor: 0.24 }
+                }
+            },
+            Area: {
+                base: 'sqm',
+                units: {
+                    'sqm': { name: 'Square Meters', factor: 1 },
+                    'sqkm': { name: 'Square Kilometers', factor: 1000000 },
+                    'sqft': { name: 'Square Feet', factor: 0.092903 },
+                    'sqin': { name: 'Square Inches', factor: 0.00064516 },
+                    'ha': { name: 'Hectares', factor: 10000 },
+                    'ac': { name: 'Acres', factor: 4046.86 }
+                }
+            },
+            Speed: {
+                base: 'mps',
+                units: {
+                    'mps': { name: 'Meters/Sec', factor: 1 },
+                    'kph': { name: 'Km/Hour', factor: 0.277778 },
+                    'mph': { name: 'Miles/Hour', factor: 0.44704 },
+                    'kn': { name: 'Knots', factor: 0.514444 }
+                }
+            },
+            Time: {
+                base: 's',
+                units: {
+                    's': { name: 'Seconds', factor: 1 },
+                    'min': { name: 'Minutes', factor: 60 },
+                    'h': { name: 'Hours', factor: 3600 },
+                    'd': { name: 'Days', factor: 86400 },
+                    'wk': { name: 'Weeks', factor: 604800 },
+                    'mo': { name: 'Months (Avg)', factor: 2628000 },
+                    'y': { name: 'Years', factor: 31536000 }
+                }
+            },
+            Data: {
+                base: 'b',
+                units: {
+                    'b': { name: 'Bytes', factor: 1 },
+                    'kb': { name: 'Kilobytes', factor: 1024 },
+                    'mb': { name: 'Megabytes', factor: 1048576 },
+                    'gb': { name: 'Gigabytes', factor: 1073741824 },
+                    'tb': { name: 'Terabytes', factor: 1099511627776 }
+                }
+            },
+            Pressure: {
+                base: 'pa',
+                units: {
+                    'pa': { name: 'Pascal', factor: 1 },
+                    'bar': { name: 'Bar', factor: 100000 },
+                    'psi': { name: 'PSI', factor: 6894.76 },
+                    'atm': { name: 'Atmosphere', factor: 101325 }
+                }
+            },
+            Energy: {
+                base: 'j',
+                units: {
+                    'j': { name: 'Joules', factor: 1 },
+                    'kj': { name: 'Kilojoules', factor: 1000 },
+                    'cal': { name: 'Calories', factor: 4.184 },
+                    'kcal': { name: 'Kilocalories', factor: 4184 },
+                    'wh': { name: 'Watt-hour', factor: 3600 },
+                    'kwh': { name: 'Kilowatt-hour', factor: 3600000 }
+                }
+            }
         };
 
-        // --- DOM References and Local State ---
+        // --- DOM Elements ---
         const categorySelect = document.getElementById('category-select');
         const fromUnitSelect = document.getElementById('from-unit');
         const toUnitSelect = document.getElementById('to-unit');
-        const inputValue = document.getElementById('input-value');
-        const outputValue = document.getElementById('output-value');
-        const sunIcon = document.getElementById('sun-icon');
-        const moonIcon = document.getElementById('moon-icon');
-        const copyNotification = document.getElementById('copy-notification');
-        const resultsTableContainer = document.getElementById('results-table-container');
+        const inputVal = document.getElementById('input-value');
+        const outputVal = document.getElementById('output-value');
+        const swapBtn = document.getElementById('swap-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const authDot = document.getElementById('auth-dot');
+        const authText = document.getElementById('auth-text');
+        const historyList = document.getElementById('history-list');
+        const historyEmpty = document.getElementById('history-empty');
+        const historyLoading = document.getElementById('history-loading');
+        const clearHistoryBtn = document.getElementById('clear-history');
+        const printHistoryBtn = document.getElementById('print-history');
 
-        let conversionResults = [];
-        let copyTimeout;
-        
-        // --- Utility Functions ---
+        // --- UI Initialization ---
+        function initUI() {
+            // Populate Categories
+            Object.keys(UNIT_DATA).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categorySelect.appendChild(opt);
+            });
 
-        /**
-         * Gets the display name of a unit.
-         */
-        function getUnitName(categoryKey, unitKey) {
-            return UNITS[categoryKey]?.[unitKey]?.name || unitKey;
-        }
-
-        /**
-         * Formats a large or small number for display (Scientific or fixed precision).
-         */
-        function formatResult(value) {
-            if (value === 0) { return '0'; }
-            // Use Intl.NumberFormat for cleaner output of standard numbers
-            if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e+12) {
-                return value.toExponential(8); // High precision for scientific notation
+            // Dark Mode check
+            if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
             } else {
-                return value.toLocaleString('en-US', { maximumSignificantDigits: 12 });
+                document.documentElement.classList.remove('dark');
             }
+
+            // Event Listeners
+            categorySelect.addEventListener('change', () => updateUnits(true));
+            fromUnitSelect.addEventListener('change', calculate);
+            toUnitSelect.addEventListener('change', calculate);
+            inputVal.addEventListener('input', calculate);
+            swapBtn.addEventListener('click', swapUnits);
+            
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('color-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            clearHistoryBtn.addEventListener('click', handleClearHistoryClick);
+            
+            printHistoryBtn.addEventListener('click', () => {
+                // Focus is crucial for iframe/embed environments
+                window.focus();
+                window.print();
+            });
+
+            // Initial Render
+            updateUnits(true);
         }
 
-        // --- Main Conversion Logic ---
-
-        function convert() {
+        function updateUnits(reset = false) {
             const category = categorySelect.value;
-            const units = UNITS[category];
-            const fromKey = fromUnitSelect.value;
-            const toKey = toUnitSelect.value;
-            const value = Number(inputValue.value);
-
-            if (isNaN(value) || !units || !fromKey || !toKey) {
-                outputValue.value = '';
-                return;
-            }
-
-            let result;
-
-            if (category === 'temperature') {
-                // Temperature requires a two-step function approach
-                const fromUnit = units[fromKey];
-                const toUnit = units[toKey];
-                const valueInBase = fromUnit.toBase(value); // Convert to Celsius base
-                // Check if 'fromBase' exists (Kelvin and Fahrenheit have it, Celsius doesn't need it but we guard against error)
-                result = toUnit.fromBase ? toUnit.fromBase(valueInBase) : valueInBase; 
-            } else {
-                // All other categories use multiplicative factors
-                const fromFactor = units[fromKey].factor;
-                const toFactor = units[toKey].factor;
-                const valueInBase = value * fromFactor;
-                result = valueInBase / toFactor;
-            }
-
-            outputValue.value = formatResult(result);
-        }
-
-        function populateUnits() {
-            const category = categorySelect.value;
-            const units = UNITS[category];
+            const units = UNIT_DATA[category].units;
             
             fromUnitSelect.innerHTML = '';
             toUnitSelect.innerHTML = '';
 
-            const unitKeys = Object.keys(units);
-            const defaultFromKey = unitKeys[0];
-            const defaultToKey = unitKeys[1] || unitKeys[0]; // Variable name is 'defaultToKey'
-
-            unitKeys.forEach(key => {
-                const unit = units[key];
-                const optionHtml = `<option value="${key}">${unit.name}</option>`;
-                fromUnitSelect.insertAdjacentHTML('beforeend', optionHtml);
-                toUnitSelect.insertAdjacentHTML('beforeend', optionHtml);
+            Object.keys(units).forEach(key => {
+                const createOpt = () => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = units[key].name;
+                    return opt;
+                };
+                fromUnitSelect.appendChild(createOpt());
+                toUnitSelect.appendChild(createOpt());
             });
 
-            fromUnitSelect.value = defaultFromKey;
-            toUnitSelect.value = defaultToKey; 
-            convert();
-        }
-
-        // --- User Interface Functions ---
-
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(isDark);
-        }
-
-        function updateThemeIcon(isDark) {
-            const darkActive = isDark ?? document.documentElement.classList.contains('dark');
-            sunIcon.classList.toggle('hidden', darkActive);
-            moonIcon.classList.toggle('hidden', !darkActive);
-        }
-        
-        function copyResult() {
-            const textToCopy = outputValue.value;
-            if (!textToCopy) { return; }
-            try {
-                const tempInput = document.createElement('textarea');
-                tempInput.value = textToCopy;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                showCopyNotification();
-            } catch (err) {
-                console.error('Failed to copy text:', err);
-            }
-        }
-
-        function showCopyNotification() {
-            clearTimeout(copyTimeout);
-            copyNotification.classList.remove('hidden');
-            void copyNotification.offsetWidth; 
-            copyNotification.classList.add('opacity-100');
-
-            copyTimeout = setTimeout(() => {
-                copyNotification.classList.remove('opacity-100');
-                setTimeout(() => {
-                    copyNotification.classList.add('hidden');
-                }, 300); 
-            }, 2000);
-        }
-
-        // --- Firebase Data Operations ---
-
-        /**
-         * Gets the Firestore collection path for the user's private conversion results.
-         */
-        function getCollectionPath() {
-            if (!currentUserId) return null;
-            // Private data path: /artifacts/{appId}/users/{userId}/conversion_results
-            return `artifacts/${appId}/users/${currentUserId}/conversion_results`;
-        }
-
-        /**
-         * Saves the current conversion result to Firestore.
-         */
-        async function saveConversion() {
-            if (!currentUserId || !db || !config.hasValidConfig) {
-                console.error("Authentication incomplete, database uninitialized, or running in MOCK mode. Save failed.");
-                return;
-            }
-
-            const category = categorySelect.value;
-            const resultData = {
-                category: category,
-                categoryName: getUnitName(category, category),
-                inputValue: Number(inputValue.value),
-                fromUnitKey: fromUnitSelect.value,
-                fromUnitName: getUnitName(category, fromUnitSelect.value),
-                toUnitKey: toUnitSelect.value,
-                toUnitName: getUnitName(category, toUnitSelect.value),
-                resultValue: outputValue.value, 
-                timestamp: serverTimestamp() 
-            };
-
-            try {
-                await addDoc(collection(db, getCollectionPath()), resultData);
-                console.log("Conversion saved.");
-            } catch (error) {
-                console.error("Error saving conversion:", error);
-                // Inform user if save fails due to permission/config issues
-                // Use a custom message box instead of alert()
-                document.getElementById('copy-notification').textContent = "Error: Failed to save to history. Check console.";
-                document.getElementById('copy-notification').classList.remove('bg-green-500');
-                document.getElementById('copy-notification').classList.add('bg-red-500');
-                showCopyNotification();
-                setTimeout(() => { // Revert color after timeout
-                    document.getElementById('copy-notification').classList.remove('bg-red-500');
-                    document.getElementById('copy-notification').classList.add('bg-green-500');
-                    document.getElementById('copy-notification').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>Copied to clipboard!';
-                }, 2300);
-            }
-        }
-
-        /**
-         * Sets up the real-time listener for conversion results.
-         */
-        function setupResultsListener() {
-            if (!currentUserId || !db || !config.hasValidConfig) return;
-
-            const resultsRef = collection(db, getCollectionPath());
-            const resultsQuery = query(resultsRef); 
-
-            onSnapshot(resultsQuery, (snapshot) => {
-                conversionResults = [];
-                snapshot.forEach((doc) => {
-                    conversionResults.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Client-Side Sorting: Newest first
-                conversionResults.sort((a, b) => {
-                    const dateA = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
-                    const dateB = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
-                    return dateB - dateA;
-                });
-
-                renderResultsTable();
-            }, (error) => {
-                console.error("Error fetching real-time results:", error);
-            });
-        }
-
-        /**
-         * Deletes a conversion result from Firestore.
-         */
-        async function deleteResult(docId) {
-            if (!currentUserId || !db || !config.hasValidConfig) {
-                 console.error("Authentication incomplete, database uninitialized, or running in MOCK mode. Delete failed.");
-                 return;
-            }
-            try {
-                await deleteDoc(doc(db, getCollectionPath(), docId));
-                console.log("Result deleted:", docId);
-            } catch (error) {
-                console.error("Error deleting document:", error);
-            }
-        }
-
-        /**
-         * Renders the current list of conversion results into the modal table.
-         */
-        function renderResultsTable() {
-            document.getElementById('results-count').textContent = conversionResults.length;
-
-            if (conversionResults.length === 0) {
-                resultsTableContainer.innerHTML = `<p id="no-results-message" class="text-center text-gray-500 dark:text-gray-400 py-10">No saved results yet. Save a conversion to begin!</p>`;
-                return;
-            }
-
-            const table = document.createElement('table');
-            table.id = 'saved-results-table';
-            table.className = 'min-w-full divide-y divide-gray-200 dark:divide-gray-700 shadow-md overflow-hidden rounded-lg';
-            
-            table.innerHTML = `
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">Category</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Input</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Result</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">Time</th>
-                        <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider no-print">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="results-table-body">
-                </tbody>
-            `;
-            
-            const tbody = table.querySelector('#results-table-body');
-
-            conversionResults.forEach(result => {
-                const inputDisplay = `${formatResult(result.inputValue)} ${result.fromUnitName}`;
-                const resultDisplay = `${result.resultValue} ${result.toUnitName}`;
-                
-                const date = result.timestamp && result.timestamp.toDate ? result.timestamp.toDate() : new Date();
-                const timeDisplay = date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
-
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/50 transition duration-150';
-                row.innerHTML = `
-                    <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">${result.categoryName}</td>
-                    <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${inputDisplay}</td>
-                    <td class="px-3 py-4 whitespace-nowrap text-sm font-bold text-primary dark:text-secondary">${resultDisplay}</td>
-                    <td class="px-3 py-4 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500 hidden md:table-cell">${timeDisplay}</td>
-                    <td class="px-3 py-4 whitespace-nowrap text-center text-sm font-medium no-print">
-                        <button onclick="deleteResult('${result.id}')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600 transition duration-150 p-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            resultsTableContainer.innerHTML = '';
-            resultsTableContainer.appendChild(table);
-        }
-
-        // --- Print/Modal Functions ---
-
-        function printResults() {
-            // 1. Setup metadata for print header
-            document.getElementById('print-user-id').textContent = currentUserId || 'Anonymous';
-            document.getElementById('print-date').textContent = new Date().toLocaleDateString();
-            document.getElementById('print-header').classList.remove('hidden');
-
-            // 2. Prepare the DOM for printing
-            const modal = document.getElementById('results-table-modal');
-            
-            // Add print target class to modal wrapper
-            modal.classList.add('is-print-target'); 
-            
-            // 3. Trigger Print (This is a blocking call)
-            window.print(); 
-
-            // 4. Cleanup after printing
-            setTimeout(() => {
-                // Remove the special print classes to restore normal visibility
-                modal.classList.remove('is-print-target');
-                document.getElementById('print-header').classList.add('hidden');
-            }, 100); 
-        }
-        
-        function showModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('hidden');
-                if (id === 'results-table-modal') {
-                    // Manually trigger ad loading inside the modal when it opens
-                    (window.adsbygoogle = window.adsbygoogle || []).push({});
+            if (reset) {
+                // Default selections
+                const keys = Object.keys(units);
+                if (keys.length > 1) {
+                    toUnitSelect.value = keys[1];
                 }
-                void modal.offsetWidth; 
-                modal.classList.add('visible');
+                inputVal.value = '';
+                outputVal.value = '';
+            }
+            calculate();
+        }
+
+        function swapUnits() {
+            const temp = fromUnitSelect.value;
+            fromUnitSelect.value = toUnitSelect.value;
+            toUnitSelect.value = temp;
+            calculate();
+        }
+
+        // --- Conversion Logic ---
+        async function calculate() {
+            const category = categorySelect.value;
+            const fromUnit = fromUnitSelect.value;
+            const toUnit = toUnitSelect.value;
+            const val = parseFloat(inputVal.value);
+
+            if (isNaN(val)) {
+                outputVal.value = '';
+                return;
+            }
+
+            let result;
+            const catData = UNIT_DATA[category];
+
+            if (catData.type === 'special') {
+                // Additive logic (Temp)
+                const baseVal = catData.units[fromUnit].toBase(val);
+                result = catData.units[toUnit].fromBase(baseVal);
+            } else {
+                // Multiplicative logic
+                const fromFactor = catData.units[fromUnit].factor;
+                const toFactor = catData.units[toUnit].factor;
+                result = val * (fromFactor / toFactor);
+            }
+
+            // Format Result
+            let formatted = result;
+            if (Math.abs(result) < 0.000001 && result !== 0) {
+                formatted = result.toExponential(4);
+            } else if (Math.abs(result) > 1000000) {
+                formatted = result.toExponential(4);
+            } else {
+                // Limit decimals nicely
+                formatted = parseFloat(result.toPrecision(6)); 
+            }
+
+            outputVal.value = formatted;
+
+            // Debounced Save to Firestore
+            saveToHistory(val, fromUnit, formatted, toUnit, category);
+        }
+
+        let saveTimeout;
+        function saveToHistory(inVal, inUnit, outVal, outUnit, cat) {
+            if (!currentUser) return;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                // Only save if input is valid and meaningful
+                if (inVal === '' || isNaN(inVal)) return;
+
+                const path = `artifacts/${appId}/users/${currentUser.uid}/conversion_results`;
+                
+                try {
+                    await addDoc(collection(db, path), {
+                        inputVal: parseFloat(inVal),
+                        inputUnit: inUnit,
+                        outputVal: outVal,
+                        outputUnit: outUnit,
+                        category: cat,
+                        timestamp: serverTimestamp()
+                    });
+                } catch (err) {
+                    console.error("Error saving history:", err);
+                }
+            }, 1500); // 1.5s debounce to avoid saving every keystroke
+        }
+
+        // --- Authentication & Firestore ---
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Failed", error);
+                authText.textContent = "Offline Mode";
+                authDot.className = "w-2 h-2 bg-red-500 rounded-full mr-2";
             }
         }
 
-        function hideModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('visible');
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                }, 300); 
+        // Auth Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                authText.textContent = `ID: ${user.uid.slice(0, 6)}...`;
+                authDot.className = "w-2 h-2 bg-green-500 rounded-full mr-2";
+                
+                setupHistoryListener(user.uid);
+            } else {
+                currentUser = null;
+                authText.textContent = "Disconnected";
+                authDot.className = "w-2 h-2 bg-red-500 rounded-full mr-2";
+                historyList.innerHTML = '';
             }
+        });
+
+        // Firestore Listener
+        function setupHistoryListener(uid) {
+            // STRICT PATH: artifacts/{appId}/users/{uid}/conversion_results
+            const path = `artifacts/${appId}/users/${uid}/conversion_results`;
+            
+            // NO ORDERBY in query to prevent index requirements
+            const q = collection(db, path);
+
+            unsubscribeHistory = onSnapshot(q, (snapshot) => {
+                const historyData = [];
+                snapshot.forEach(doc => {
+                    historyData.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Update global ID tracking for bulk delete
+                currentHistoryIds = historyData.map(item => item.id);
+
+                // Update UI for Empty/Clear button state
+                if (currentHistoryIds.length === 0) {
+                    clearHistoryBtn.disabled = true;
+                    clearHistoryBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    printHistoryBtn.disabled = true;
+                    printHistoryBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    clearHistoryBtn.disabled = false;
+                    clearHistoryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    printHistoryBtn.disabled = false;
+                    printHistoryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+
+                // Sort in memory (Newest first)
+                historyData.sort((a, b) => {
+                    const tA = a.timestamp?.seconds || 0;
+                    const tB = b.timestamp?.seconds || 0;
+                    return tB - tA;
+                });
+
+                renderHistory(historyData);
+                historyLoading.classList.add('hidden');
+            }, (error) => {
+                console.error("Snapshot error:", error);
+                historyLoading.classList.add('hidden');
+                // Likely permission error if rules aren't set
+                historyList.innerHTML = `<div class="text-red-500 text-xs p-4">Sync Error. Check Permissions.</div>`;
+            });
         }
 
-        // --- Final Setup ---
-        window.onload = function() {
-            updateThemeIcon();
-            populateUnits();
+        function renderHistory(data) {
+            historyList.innerHTML = '';
+            
+            if (data.length === 0) {
+                historyEmpty.classList.remove('hidden');
+                return;
+            }
+            historyEmpty.classList.add('hidden');
+
+            data.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-slate-200 dark:hover:border-slate-600';
+                
+                // Construct readable string (e.g., "10 m → 32.8 ft")
+                const fromSymbol = UNIT_DATA[item.category]?.units[item.inputUnit]?.name || item.inputUnit;
+                const toSymbol = UNIT_DATA[item.category]?.units[item.outputUnit]?.name || item.outputUnit;
+
+                el.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-baseline gap-2">
+                            <span class="font-bold text-slate-700 dark:text-slate-200 truncate">${item.inputVal} <span class="text-xs font-normal text-slate-500">${item.inputUnit}</span></span>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                            <span class="font-bold text-brand-600 dark:text-brand-400 truncate">${item.outputVal} <span class="text-xs font-normal text-brand-500/70">${item.outputUnit}</span></span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span class="uppercase tracking-wider font-semibold text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-600 px-1 rounded">${item.category}</span>
+                        </div>
+                    </div>
+                    <button class="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 p-2" onclick="window.deleteItem('${item.id}')">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                historyList.appendChild(el);
+            });
+        }
+
+        // Global functions for inline HTML events
+        window.deleteItem = async (docId) => {
+            if (!currentUser) return;
+            try {
+                await deleteDoc(doc(db, `artifacts/${appId}/users/${currentUser.uid}/conversion_results`, docId));
+            } catch (e) {
+                console.error("Delete failed", e);
+            }
         };
 
-        // Expose functions globally for HTML event handlers
-        window.toggleTheme = toggleTheme;
-        window.convert = convert;
-        window.populateUnits = populateUnits;
-        window.copyResult = copyResult;
-        window.showModal = showModal;
-        window.hideModal = hideModal;
-        window.saveConversion = saveConversion;
-        window.deleteResult = deleteResult;
-        window.printResults = printResults;
+        let clearConfirmTimer;
+        async function handleClearHistoryClick() {
+            if (!currentUser || currentHistoryIds.length === 0) return;
+
+            const btn = document.getElementById('clear-history');
+            
+            // Check if already in confirmation state
+            if (btn.getAttribute('data-confirming') === 'true') {
+                // Execute Deletion
+                btn.innerText = "Clearing...";
+                btn.disabled = true;
+                
+                try {
+                    // Use memory IDs to delete (No extra read required)
+                    const promises = currentHistoryIds.map(id => 
+                        deleteDoc(doc(db, `artifacts/${appId}/users/${currentUser.uid}/conversion_results`, id))
+                    );
+                    await Promise.all(promises);
+                    
+                    // Reset UI (handled mostly by onSnapshot, but let's be safe)
+                    btn.innerText = "Clear All";
+                    btn.removeAttribute('data-confirming');
+                    btn.disabled = false;
+                } catch (e) {
+                    console.error("Clear all failed", e);
+                    btn.innerText = "Error";
+                    setTimeout(() => {
+                        btn.innerText = "Clear All";
+                        btn.removeAttribute('data-confirming');
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            } else {
+                // Enter Confirmation State
+                btn.innerText = "Confirm?";
+                btn.setAttribute('data-confirming', 'true');
+                btn.classList.add('bg-red-500', 'text-white'); // Force active style
+                
+                // Auto-reset after 3 seconds
+                clearTimeout(clearConfirmTimer);
+                clearConfirmTimer = setTimeout(() => {
+                    btn.innerText = "Clear All";
+                    btn.removeAttribute('data-confirming');
+                    btn.classList.remove('bg-red-500', 'text-white');
+                }, 3000);
+            }
+        }
+
+        // Start
+        initUI();
+        initAuth();
+
     </script>
 </body>
 </html>
