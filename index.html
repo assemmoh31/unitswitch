@@ -411,6 +411,24 @@
         };
 
 
+        // ====================================================================================
+        // >>> TU CONFIGURACIÓN REAL DE FIREBASE HA SIDO INTEGRADA AQUÍ <<<
+        // 
+        // Esta configuración garantiza que el historial de conversiones se guarde
+        // en tu proyecto de Firebase: unitconverpro.
+        // ====================================================================================
+        const REAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyB81-YUohQq6rBiRQnzwNRGrLGrJGKs0M0",
+            authDomain: "unitconverpro.firebaseapp.com",
+            projectId: "unitconverpro",
+            storageBucket: "unitconverpro.firebasestorage.app",
+            messagingSenderId: "1063076389366",
+            appId: "1:1063076389366:web:c1286f510f898f37cb27d7"
+            // MeasurementId is excluded as it's not needed for core functionality
+        };
+        // ====================================================================================
+
+
         // --- Firebase Globals & Initialization ---
         let db;
         let auth;
@@ -420,7 +438,7 @@
         
         /**
          * Safely loads and initializes global environment variables for Firebase config, 
-         * falling back to mock config if running outside Canvas environment or if config is invalid.
+         * falling back to mock/real config if running outside Canvas environment or if config is invalid.
          */
         const initFirebaseEnv = () => {
             let firebaseConfig = MOCK_FIREBASE_CONFIG; 
@@ -432,7 +450,7 @@
                 appId = __app_id;
             }
             
-            // 2. Load and parse __firebase_config (Overwrite mock if present)
+            // 2. Load and parse __firebase_config (Overwrite mock if present, used inside Canvas)
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 try {
                     const parsedConfig = JSON.parse(__firebase_config);
@@ -441,16 +459,33 @@
                         firebaseConfig = parsedConfig;
                         hasValidConfig = true;
                     } else {
-                         console.warn("FIREBASE WARNING: __firebase_config is present but appears invalid (missing apiKey/projectId). Using MOCK config.");
+                         console.warn("FIREBASE WARNING: __firebase_config is present but appears invalid (missing apiKey/projectId). Using REAL config as fallback.");
+                         firebaseConfig = REAL_FIREBASE_CONFIG; // Fallback to REAL config for external use
+                         // Check if REAL_FIREBASE_CONFIG seems valid (not the placeholder)
+                         if (firebaseConfig.apiKey) {
+                             hasValidConfig = true;
+                         }
                     }
                 } catch(e) {
-                    console.error("FIREBASE ERROR: Failed to parse __firebase_config. Using MOCK config.", e);
+                    console.error("FIREBASE ERROR: Failed to parse __firebase_config. Using REAL config.", e);
+                    firebaseConfig = REAL_FIREBASE_CONFIG;
+                    if (firebaseConfig.apiKey) {
+                         hasValidConfig = true;
+                    }
                 }
             } else {
-                console.warn("FIREBASE WARNING: __firebase_config is undefined. Using MOCK config and Anonymous Sign-In.");
+                // 3. If __firebase_config is undefined (running in GitHub/external browser), use REAL_FIREBASE_CONFIG
+                firebaseConfig = REAL_FIREBASE_CONFIG;
+                // Check if REAL_FIREBASE_CONFIG seems valid (not the placeholder)
+                if (firebaseConfig.apiKey) {
+                    hasValidConfig = true;
+                } else {
+                     console.warn("FIREBASE WARNING: __firebase_config is undefined, and REAL_FIREBASE_CONFIG is missing API key. Using MOCK config.");
+                     firebaseConfig = MOCK_FIREBASE_CONFIG; // Final fallback to MOCK
+                }
             }
             
-            // 3. Load __initial_auth_token
+            // 4. Load __initial_auth_token
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 initialAuthToken = __initial_auth_token;
             }
@@ -471,6 +506,7 @@
                 const statusElement = document.getElementById('auth-status');
                 if (!config.hasValidConfig) {
                     statusElement.textContent = 'MOCK MODE: History Disabled';
+                    statusElement.classList.remove('text-green-500');
                     statusElement.classList.add('text-yellow-500');
                     return; // Prevent attempting sign-in which would crash with the mock key
                 }
@@ -633,7 +669,7 @@
 
             const unitKeys = Object.keys(units);
             const defaultFromKey = unitKeys[0];
-            const defaultToKey = unitKeys[1] || unitKeys[0]; 
+            const defaultToKey = unitKeys[1] || unitKeys[0]; // Variable name is 'defaultToKey'
 
             unitKeys.forEach(key => {
                 const unit = units[key];
@@ -643,7 +679,7 @@
             });
 
             fromUnitSelect.value = defaultFromKey;
-            toUnitSelect.value = defaultToKey;
+            toUnitSelect.value = defaultToKey; 
             convert();
         }
 
@@ -730,7 +766,16 @@
             } catch (error) {
                 console.error("Error saving conversion:", error);
                 // Inform user if save fails due to permission/config issues
-                alert("Error: Failed to save to history. Please check console for details.");
+                // Use a custom message box instead of alert()
+                document.getElementById('copy-notification').textContent = "Error: Failed to save to history. Check console.";
+                document.getElementById('copy-notification').classList.remove('bg-green-500');
+                document.getElementById('copy-notification').classList.add('bg-red-500');
+                showCopyNotification();
+                setTimeout(() => { // Revert color after timeout
+                    document.getElementById('copy-notification').classList.remove('bg-red-500');
+                    document.getElementById('copy-notification').classList.add('bg-green-500');
+                    document.getElementById('copy-notification').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>Copied to clipboard!';
+                }, 2300);
             }
         }
 
