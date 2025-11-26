@@ -398,13 +398,11 @@
         import { getFirestore, onSnapshot, collection, query, serverTimestamp, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // setLogLevel('Debug'); // Uncomment this for detailed Firebase console logs
+        // setLogLevel('Debug'); 
 
-        // MOCK CONFIGURATION: Used when deploying to external sites like GitHub Pages
-        // You MUST replace these placeholder values with YOUR OWN Firebase config if you want the data 
-        // to persist to your actual database project!
+        // --- Mock Configuration for Robustness (Used if environment config fails) ---
         const MOCK_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyC0M-pL_AcEHoLdEr-Key",
+            apiKey: "MOCK_KEY_TO_PREVENT_CRASH", // A placeholder value to avoid the 'auth/api-key-not-valid' crash
             authDomain: "mock-project.firebaseapp.com",
             projectId: "unit-converter-mock",
             storageBucket: "mock-project.appspot.com",
@@ -418,15 +416,16 @@
         let auth;
         let currentUserId = null; 
         let appId = 'default-app-id'; // Default safeguard
+        let isFirebaseReady = false; // New flag for better control
         
         /**
          * Safely loads and initializes global environment variables for Firebase config, 
-         * falling back to mock config if running outside Canvas environment.
+         * falling back to mock config if running outside Canvas environment or if config is invalid.
          */
         const initFirebaseEnv = () => {
-            // Start with MOCK configuration for external deployment
             let firebaseConfig = MOCK_FIREBASE_CONFIG; 
             let initialAuthToken = null;
+            let hasValidConfig = false;
 
             // 1. Load __app_id
             if (typeof __app_id !== 'undefined') {
@@ -434,13 +433,18 @@
             }
             
             // 2. Load and parse __firebase_config (Overwrite mock if present)
-            // This condition is FALSE on GitHub Pages, so it uses the MOCK_FIREBASE_CONFIG
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 try {
-                    firebaseConfig = JSON.parse(__firebase_config);
+                    const parsedConfig = JSON.parse(__firebase_config);
+                    // Check if the parsed config actually has an apiKey or projectId
+                    if (parsedConfig.apiKey && parsedConfig.projectId) {
+                        firebaseConfig = parsedConfig;
+                        hasValidConfig = true;
+                    } else {
+                         console.warn("FIREBASE WARNING: __firebase_config is present but appears invalid (missing apiKey/projectId). Using MOCK config.");
+                    }
                 } catch(e) {
-                    console.error("FIREBASE ERROR: Failed to parse __firebase_config", e);
-                    // Continue with mock config if parsing fails
+                    console.error("FIREBASE ERROR: Failed to parse __firebase_config. Using MOCK config.", e);
                 }
             } else {
                 console.warn("FIREBASE WARNING: __firebase_config is undefined. Using MOCK config and Anonymous Sign-In.");
@@ -451,35 +455,54 @@
                 initialAuthToken = __initial_auth_token;
             }
 
-            return { firebaseConfig, initialAuthToken };
+            return { firebaseConfig, initialAuthToken, hasValidConfig };
         };
 
         const config = initFirebaseEnv();
 
-        if (config) {
+        if (config.hasValidConfig || !config.hasValidConfig) { // Always run initialization, even with mock data
             const app = initializeApp(config.firebaseConfig);
-            db = getFirestore(app);
             auth = getAuth(app);
-            
+            db = getFirestore(app);
+            isFirebaseReady = true;
+
             // Initial Authentication
             const authenticate = async () => {
                 const statusElement = document.getElementById('auth-status');
+                if (!config.hasValidConfig) {
+                    statusElement.textContent = 'MOCK MODE: History Disabled';
+                    statusElement.classList.add('text-yellow-500');
+                    return; // Prevent attempting sign-in which would crash with the mock key
+                }
+
                 try {
                     // Tries Custom Token first (only works in Canvas)
                     if (config.initialAuthToken) {
                         await signInWithCustomToken(auth, config.initialAuthToken);
                     } else {
-                        // Falls back to Anonymous Sign-In for external deployments (GitHub Pages)
+                        // Falls back to Anonymous Sign-In for external deployments
                         await signInAnonymously(auth); 
                     }
                 } catch (error) {
                     console.error("Firebase Auth Error:", error);
                     statusElement.textContent = `Auth Failed: ${error.code}`;
+                    statusElement.classList.remove('text-green-500');
+                    statusElement.classList.add('text-red-500');
                 }
             };
-            authenticate();
+            
+            // Only try to authenticate if we think we have a valid key
+            if (config.hasValidConfig) {
+                authenticate();
+            } else {
+                 // If not valid, manually set the disabled state
+                 const historyButton = document.getElementById('view-history-button');
+                 const saveButton = document.getElementById('save-result-button');
+                 historyButton.disabled = true;
+                 saveButton.disabled = true;
+            }
 
-            // Auth State Listener and Initialization Trigger
+            // Auth State Listener and Initialization Trigger (Only runs if a valid key was used)
             onAuthStateChanged(auth, (user) => {
                 const statusElement = document.getElementById('auth-status');
                 const historyButton = document.getElementById('view-history-button');
@@ -489,17 +512,16 @@
                 if (user) {
                     currentUserId = user.uid;
                     statusElement.textContent = 'Ready';
-                    statusElement.classList.remove('text-red-500');
+                    statusElement.classList.remove('text-red-500', 'text-yellow-500');
                     statusElement.classList.add('text-green-500');
                     historyButton.disabled = false;
                     saveButton.disabled = false;
-                    // Note: Anonymous User IDs are usually a unique, long string (not the short numeric one you see in Canvas)
                     userIdDisplay.textContent = `User ID: ${currentUserId}`; 
                     
                     setupResultsListener(); // Start listening for data
-                } else {
+                } else if (config.hasValidConfig) { // Only log error if a valid config was expected
                     currentUserId = null;
-                    statusElement.textContent = 'Auth Required';
+                    statusElement.textContent = 'Auth Required (Sign-in error)';
                     statusElement.classList.add('text-red-500');
                     statusElement.classList.remove('text-green-500');
                     historyButton.disabled = true;
@@ -684,8 +706,8 @@
          * Saves the current conversion result to Firestore.
          */
         async function saveConversion() {
-            if (!currentUserId || !db) {
-                console.error("Authentication incomplete or database uninitialized.");
+            if (!currentUserId || !db || !config.hasValidConfig) {
+                console.error("Authentication incomplete, database uninitialized, or running in MOCK mode. Save failed.");
                 return;
             }
 
@@ -707,6 +729,8 @@
                 console.log("Conversion saved.");
             } catch (error) {
                 console.error("Error saving conversion:", error);
+                // Inform user if save fails due to permission/config issues
+                alert("Error: Failed to save to history. Please check console for details.");
             }
         }
 
@@ -714,7 +738,7 @@
          * Sets up the real-time listener for conversion results.
          */
         function setupResultsListener() {
-            if (!currentUserId || !db) return;
+            if (!currentUserId || !db || !config.hasValidConfig) return;
 
             const resultsRef = collection(db, getCollectionPath());
             const resultsQuery = query(resultsRef); 
@@ -742,7 +766,10 @@
          * Deletes a conversion result from Firestore.
          */
         async function deleteResult(docId) {
-            if (!currentUserId || !db) return;
+            if (!currentUserId || !db || !config.hasValidConfig) {
+                 console.error("Authentication incomplete, database uninitialized, or running in MOCK mode. Delete failed.");
+                 return;
+            }
             try {
                 await deleteDoc(doc(db, getCollectionPath(), docId));
                 console.log("Result deleted:", docId);
@@ -809,7 +836,7 @@
             resultsTableContainer.appendChild(table);
         }
 
-        // --- Print/Modal Functions (FIXED) ---
+        // --- Print/Modal Functions ---
 
         function printResults() {
             // 1. Setup metadata for print header
